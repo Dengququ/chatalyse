@@ -1,0 +1,16 @@
+# Output files
+/tmp/
+*.key
+*.txt
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
