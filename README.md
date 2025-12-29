@@ -22,25 +22,30 @@
 ## 项目结构
 
 ```
-src/
-├── app/
-│   ├── api/
-│   │   ├── analyze/       # AI分析接口
-│   │   ├── auth/          # 认证相关
-│   │   ├── todos/         # 待办CRUD
-│   │   ├── webhook/       # Webhook接口
-│   │   └── wordcloud/     # 词云生成
-│   ├── wechat-connect/    # 微信连接页面
-│   ├── page.tsx           # 主页
-│   └── layout.tsx
-├── components/
-│   └── WordCloud.tsx      # 词云组件
-├── lib/
-│   ├── auth.ts            # NextAuth配置
-│   └── mongodb.ts         # MongoDB连接
-└── models/
-    ├── Todo.ts            # 待办模型
-    └── User.ts            # 用户模型
+├── src/
+│   ├── app/
+│   │   ├── api/
+│   │   │   ├── analyze/       # AI分析接口
+│   │   │   ├── auth/          # 认证相关
+│   │   │   ├── todos/         # 待办CRUD
+│   │   │   ├── webhook/       # Webhook接口
+│   │   │   └── wordcloud/     # 词云生成
+│   │   ├── wechat-connect/    # 微信连接页面
+│   │   ├── page.tsx           # 主页
+│   │   └── layout.tsx
+│   ├── components/
+│   │   └── WordCloud.tsx      # 词云组件
+│   ├── lib/
+│   │   ├── auth.ts            # NextAuth配置
+│   │   └── mongodb.ts         # MongoDB连接
+│   └── models/
+│       ├── Todo.ts            # 待办模型
+│       └── User.ts            # 用户模型
+└── wechat-key-extractor/      # 微信密钥提取工具
+    ├── README.md              # 工具文档
+    ├── extract_key.js         # Frida 提取脚本
+    ├── extract_key.sh         # 一键提取脚本
+    └── decrypt_wcdb.py        # Python 解密工具
 ```
 
 ## 快速开始
@@ -55,18 +60,57 @@ brew install sjzar/tap/chatlog
 go install github.com/sjzar/chatlog@latest
 ```
 
-### 2. 启动 chatlog 服务
+### 2. 获取微信数据库密钥 (macOS WeChat 4.0+)
+
+微信 4.0+ 使用 WCDB 加密数据库，需要先提取密钥。
+
+#### 方法一：使用本项目的提取工具
+
+```bash
+# 进入工具目录
+cd wechat-key-extractor
+
+# 运行一键提取脚本
+./extract_key.sh
+```
+
+#### 方法二：手动使用 Frida
+
+```bash
+# 1. 安装 Frida
+pip3 install frida-tools
+
+# 2. 禁用 SIP (需重启进入恢复模式)
+csrutil disable
+
+# 3. 获取微信 PID
+pgrep -x WeChat
+
+# 4. Hook PBKDF 函数提取密钥
+frida-trace -p <PID> -i "CCKeyDerivationPBKDF"
+
+# 5. 在微信中进行操作，观察终端输出捕获密钥
+```
+
+详细说明请参考 [wechat-key-extractor/README.md](./wechat-key-extractor/README.md)
+
+### 3. 启动 chatlog 服务
 
 ```bash
 chatlog server -a 127.0.0.1:5030 \
   -d "微信数据目录" \
-  -k "数据密钥" \
+  -k "提取到的密钥" \
   -w "/tmp/chatlog_output" \
   -p darwin \
   -v 4
 ```
 
-### 3. 配置环境变量
+微信数据目录通常位于：
+```
+~/Library/Containers/com.tencent.xinWeChat/Data/Documents/xwechat_files/wxid_xxx/
+```
+
+### 4. 配置环境变量
 
 创建 `.env.local` 文件：
 
@@ -77,7 +121,7 @@ NEXTAUTH_URL=http://localhost:3000
 ANTHROPIC_API_KEY=your-claude-api-key
 ```
 
-### 4. 安装依赖并运行
+### 5. 安装依赖并运行
 
 ```bash
 npm install
@@ -110,8 +154,8 @@ npm run dev
 
 ```json
 {
-  "chatContent": "聊天记录文本",
-  "limit": 100
+  chatContent: 聊天记录文本,
+  limit: 100
 }
 ```
 
@@ -121,8 +165,8 @@ AI分析聊天内容提取待办
 
 ```json
 {
-  "chatContent": "聊天记录文本",
-  "source": "来源名称"
+  chatContent: 聊天记录文本,
+  source: 来源名称
 }
 ```
 
